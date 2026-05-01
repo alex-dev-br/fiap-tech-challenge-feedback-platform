@@ -282,3 +282,6 @@ O projeto será conduzido com foco em:
 - redução de retrabalho futuro
 - documentação técnica forte
 - solução demonstrável e bem defendida em banca
+
+
+
