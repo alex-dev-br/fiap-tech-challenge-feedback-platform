@@ -29,8 +29,16 @@ public class JpaOutboxEventRepositoryAdapter implements OutboxEventRepositoryPor
     @Override
     public OutboxEvent save(OutboxEvent outboxEvent) {
         OutboxEventEntity entity = mapper.toEntity(outboxEvent);
-        panacheRepository.persist(entity);
-        return mapper.toDomain(entity);
+
+        boolean exists = panacheRepository.findByIdOptional(outboxEvent.id()).isPresent();
+
+        if (!exists) {
+            panacheRepository.persist(entity);
+            return mapper.toDomain(entity);
+        }
+
+        OutboxEventEntity merged = panacheRepository.getEntityManager().merge(entity);
+        return mapper.toDomain(merged);
     }
 
     @Override
