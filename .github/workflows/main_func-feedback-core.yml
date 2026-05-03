@@ -23,12 +23,13 @@ jobs:
 
     steps:
       - name: 'Checkout GitHub Action'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Java Sdk ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v1
-        with: |+
+        uses: actions/setup-java@v5
+        with:
           java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
 
       - name: 'Restore Project Dependencies Using Mvn'
         shell: pwsh
@@ -38,7 +39,7 @@ jobs:
           popd
       
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_E7E75FAC2E4C4BBD828D7A7D11AED8F1 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8634507C4AA34D52B16EF9931DFB6A18 }}
