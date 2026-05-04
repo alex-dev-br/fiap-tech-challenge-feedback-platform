@@ -1,5 +1,7 @@
 package br.com.fiap.techchallenge.feedbackplatform.infrastructure.config;
 
+import java.util.List;
+
 import br.com.fiap.techchallenge.feedbackplatform.application.ports.FeedbackRepositoryPort;
 import br.com.fiap.techchallenge.feedbackplatform.application.usecase.CreateFeedbackUseCase;
 import br.com.fiap.techchallenge.feedbackplatform.infrastructure.classifier.FeedbackUrgenciaClassifierAdapter;
@@ -13,6 +15,6 @@ public class Producers {
     @ApplicationScoped
     public CreateFeedbackUseCase createFeedbackUseCaseProducer(FeedbackRepositoryPort feedbackRepository) {
         return new CreateFeedbackUseCase(feedbackRepository, new FeedbackUrgenciaClassifierAdapter(),
-                (feedback) -> System.out.println("Feedback urgente: " + feedback));
+                List.of((feedback) -> System.out.println("Feedback urgente: " + feedback)));
     }
 }

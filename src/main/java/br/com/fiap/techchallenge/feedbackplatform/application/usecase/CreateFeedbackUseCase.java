@@ -1,5 +1,6 @@
 package br.com.fiap.techchallenge.feedbackplatform.application.usecase;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -14,10 +15,10 @@ public class CreateFeedbackUseCase {
 
     private final FeedbackRepositoryPort feedbackRepository;
     private final FeedbackUrgenciaClassifier urgenciaClassifier;
-    private final Notification<Feedback> notification;
+    private final List<Notification<Feedback>> notification;
 
     public CreateFeedbackUseCase(FeedbackRepositoryPort feedbackRepository,
-            FeedbackUrgenciaClassifier urgenciaClassifier, Notification<Feedback> notification) {
+            FeedbackUrgenciaClassifier urgenciaClassifier, List<Notification<Feedback>> notification) {
         this.feedbackRepository = Objects.requireNonNull(feedbackRepository);
         this.urgenciaClassifier = Objects.requireNonNull(urgenciaClassifier);
         this.notification = Objects.requireNonNull(notification);
@@ -33,7 +34,7 @@ public class CreateFeedbackUseCase {
         Feedback feedbackSalvo = feedbackRepository.save(feedback);
 
         if (feedbackSalvo.isUrgente()) {
-            this.notification.send(feedbackSalvo);
+            this.notification.forEach(notification -> notification.send(feedbackSalvo));
         }
 
         return FeedbackCreatedResult.from(feedbackSalvo);
