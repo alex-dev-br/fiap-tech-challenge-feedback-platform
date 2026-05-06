@@ -1,5 +1,6 @@
 package br.com.fiap.techchallenge.feedbackplatform.infrastructure.notify;
 
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.stream.Stream;
 
@@ -24,6 +25,8 @@ import jakarta.inject.Inject;
 public class EmailSender implements Notification<Feedback> {
 
     private static final Logger LOG = LoggerFactory.getLogger(EmailSender.class);
+
+    private static final ZoneId ZONE_ID_SP = ZoneId.of("America/Sao_Paulo");
 
     @Inject
     @ConfigProperty(name = "app.email.connection-string")
@@ -60,8 +63,9 @@ public class EmailSender implements Notification<Feedback> {
                 </html>
                 """;
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        String bodyFormatted = String.format(body, feedback.descricao(), feedback.urgencia(),
-                feedback.dataCriacao().format(formatter));
+        String dataFormatada = feedback.dataCriacao().atZoneSameInstant(ZONE_ID_SP).format(formatter);
+
+        String bodyFormatted = String.format(body, feedback.descricao(), feedback.urgencia(), dataFormatada);
 
         EmailMessage emailMessage = new EmailMessage()
                 .setSenderAddress(senderAddress)
