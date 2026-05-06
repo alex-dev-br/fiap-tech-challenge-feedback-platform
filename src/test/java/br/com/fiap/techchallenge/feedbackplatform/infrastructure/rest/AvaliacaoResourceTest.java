@@ -1,7 +1,11 @@
-package br.com.fiap.techchallenge.feedbackplatform.entrypoint.rest;
+package br.com.fiap.techchallenge.feedbackplatform.infrastructure.rest;
 
+import br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.repository.PanacheFeedbackRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -11,8 +15,39 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 class AvaliacaoResourceTest {
 
+    @Inject
+    PanacheFeedbackRepository feedbackRepository;
+
+    @BeforeEach
+    @Transactional
+    void limparBanco() {
+        feedbackRepository.deleteAll();
+    }
+
     @Test
     void deveCriarAvaliacaoComSucesso() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "descricao": "A aula foi muito boa",
+                          "nota": 9
+                        }
+                        """)
+                .when()
+                .post("/avaliacoes")
+                .then()
+                .statusCode(201)
+                .header("Location", notNullValue())
+                .body("id", notNullValue())
+                .body("descricao", equalTo("A aula foi muito boa"))
+                .body("nota", equalTo(9))
+                .body("urgencia", equalTo("BAIXA"))
+                .body("dataCriacao", notNullValue());
+    }
+
+    @Test
+    void deveCriarAvaliacaoUrgenteQuandoDescricaoContiverPalavraCritica() {
         given()
                 .contentType(ContentType.JSON)
                 .body("""
@@ -50,6 +85,22 @@ class AvaliacaoResourceTest {
     }
 
     @Test
+    void deveRetornarBadRequestQuandoNotaForMenorQueZero() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "descricao": "A aula foi boa, mas o áudio estava ruim",
+                          "nota": -1
+                        }
+                        """)
+                .when()
+                .post("/avaliacoes")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
     void deveRetornarBadRequestQuandoDescricaoForVazia() {
         given()
                 .contentType(ContentType.JSON)
@@ -72,6 +123,21 @@ class AvaliacaoResourceTest {
                 .body("""
                         {
                           "descricao": "A aula foi boa, mas o áudio estava ruim"
+                        }
+                        """)
+                .when()
+                .post("/avaliacoes")
+                .then()
+                .statusCode(400);
+    }
+
+    @Test
+    void deveRetornarBadRequestQuandoDescricaoNaoForInformada() {
+        given()
+                .contentType(ContentType.JSON)
+                .body("""
+                        {
+                          "nota": 5
                         }
                         """)
                 .when()

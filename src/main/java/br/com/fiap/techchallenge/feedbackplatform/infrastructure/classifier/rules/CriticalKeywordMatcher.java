@@ -14,6 +14,7 @@ public class CriticalKeywordMatcher {
                 "travando",
                 "bug",
                 "pessimo",
+                "pessima",
                 "horrivel",
                 "nao funciona",
                 "reclamacao",
