@@ -74,7 +74,7 @@ public class EmailSender implements Notification<Feedback> {
                 .setBodyHtml(bodyFormatted);
 
         SyncPoller<EmailSendResult, EmailSendResult> poller = emailClient.beginSend(emailMessage, null);
-        PollResponse<EmailSendResult> result = poller.waitForCompletion();
+        PollResponse<EmailSendResult> result = poller.waitForCompletion(java.time.Duration.ofSeconds(10));
 
         LOG.info("Email sent with message Id: {}", result.getValue().getId());
     }
