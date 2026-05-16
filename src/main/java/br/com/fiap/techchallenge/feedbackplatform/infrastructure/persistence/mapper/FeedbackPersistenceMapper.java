@@ -14,9 +14,6 @@ public class FeedbackPersistenceMapper {
         entity.setNota(feedback.nota());
         entity.setUrgencia(feedback.urgencia());
         entity.setDataCriacao(feedback.dataCriacao());
-        entity.setAlertaEnviado(feedback.alertaEnviado());
-        entity.setDataEnvioAlerta(feedback.dataEnvioAlerta());
-        entity.setStatusProcessamento(feedback.statusProcessamento());
         return entity;
     }
 
@@ -26,10 +23,6 @@ public class FeedbackPersistenceMapper {
                 entity.getDescricao(),
                 entity.getNota(),
                 entity.getUrgencia(),
-                entity.getDataCriacao(),
-                entity.isAlertaEnviado(),
-                entity.getDataEnvioAlerta(),
-                entity.getStatusProcessamento()
-        );
+                entity.getDataCriacao());
     }
 }

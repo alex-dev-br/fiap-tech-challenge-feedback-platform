@@ -1,47 +1,111 @@
 package br.com.fiap.techchallenge.feedbackplatform.domain.model;
 
-import br.com.fiap.techchallenge.feedbackplatform.domain.enums.StatusProcessamentoFeedback;
+import br.com.fiap.techchallenge.feedbackplatform.application.ports.FeedbackUrgenciaClassifier;
 import br.com.fiap.techchallenge.feedbackplatform.domain.enums.Urgencia;
-import br.com.fiap.techchallenge.feedbackplatform.domain.services.FeedbackUrgenciaClassifier;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class FeedbackTest {
 
-    private final FeedbackUrgenciaClassifier classifier = new FeedbackUrgenciaClassifier();
+    private final FeedbackUrgenciaClassifier baixaClassifier = (descricao, nota) -> Urgencia.BAIXA;
 
     @Test
-    void deveCriarFeedbackComValoresIniciaisEsperados() {
-        Feedback feedback = Feedback.novo("A plataforma está travando", 8, classifier);
+    void deveCriarNovoFeedbackComDadosValidos() {
+        Feedback feedback = Feedback.novo("A aula foi muito boa", 9, baixaClassifier);
 
         assertNotNull(feedback.id());
-        assertEquals("A plataforma está travando", feedback.descricao());
-        assertEquals(8, feedback.nota());
-        assertEquals(Urgencia.ALTA, feedback.urgencia());
+        assertEquals("A aula foi muito boa", feedback.descricao());
+        assertEquals(9, feedback.nota());
+        assertEquals(Urgencia.BAIXA, feedback.urgencia());
         assertNotNull(feedback.dataCriacao());
-        assertFalse(feedback.alertaEnviado());
-        assertNull(feedback.dataEnvioAlerta());
-        assertEquals(StatusProcessamentoFeedback.PENDENTE, feedback.statusProcessamento());
     }
 
     @Test
-    void deveFalharAoCriarFeedbackComDescricaoVazia() {
-        assertThrows(IllegalArgumentException.class,
-                () -> Feedback.novo("   ", 5, classifier));
+    void deveIndicarQueFeedbackEhUrgenteQuandoUrgenciaForAlta() {
+        Feedback feedback = new Feedback(
+                UUID.randomUUID(),
+                "Sistema travando",
+                2,
+                Urgencia.ALTA,
+                OffsetDateTime.now()
+        );
+
+        assertTrue(feedback.isUrgente());
     }
 
     @Test
-    void deveMarcarAlertaComoEnviado() {
-        Feedback feedback = Feedback.novo("Erro crítico na aula", 3, classifier);
-        OffsetDateTime dataEnvio = OffsetDateTime.now();
+    void deveIndicarQueFeedbackNaoEhUrgenteQuandoUrgenciaNaoForAlta() {
+        Feedback feedback = new Feedback(
+                UUID.randomUUID(),
+                "Aula razoável",
+                6,
+                Urgencia.MEDIA,
+                OffsetDateTime.now()
+        );
 
-        Feedback atualizado = feedback.marcarAlertaEnviado(dataEnvio);
+        assertFalse(feedback.isUrgente());
+    }
 
-        assertTrue(atualizado.alertaEnviado());
-        assertEquals(dataEnvio, atualizado.dataEnvioAlerta());
-        assertEquals(StatusProcessamentoFeedback.PROCESSADO, atualizado.statusProcessamento());
+    @Test
+    void deveFalharQuandoDescricaoForNula() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new Feedback(
+                        UUID.randomUUID(),
+                        null,
+                        8,
+                        Urgencia.BAIXA,
+                        OffsetDateTime.now()
+                )
+        );
+    }
+
+    @Test
+    void deveFalharQuandoDescricaoForVazia() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new Feedback(
+                        UUID.randomUUID(),
+                        "   ",
+                        8,
+                        Urgencia.BAIXA,
+                        OffsetDateTime.now()
+                )
+        );
+    }
+
+    @Test
+    void deveFalharQuandoNotaForMenorQueZero() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new Feedback(
+                        UUID.randomUUID(),
+                        "Comentário válido",
+                        -1,
+                        Urgencia.BAIXA,
+                        OffsetDateTime.now()
+                )
+        );
+    }
+
+    @Test
+    void deveFalharQuandoNotaForMaiorQueDez() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new Feedback(
+                        UUID.randomUUID(),
+                        "Comentário válido",
+                        11,
+                        Urgencia.BAIXA,
+                        OffsetDateTime.now()
+                )
+        );
+    }
+
+    @Test
+    void deveFalharQuandoClassifierForNulo() {
+        assertThrows(NullPointerException.class, () ->
+                Feedback.novo("Comentário válido", 8, null)
+        );
     }
 }

@@ -4,6 +4,7 @@ import br.com.fiap.techchallenge.feedbackplatform.application.ports.FeedbackRepo
 import br.com.fiap.techchallenge.feedbackplatform.domain.model.Feedback;
 import br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.entity.FeedbackEntity;
 import br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.mapper.FeedbackPersistenceMapper;
+import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.Optional;
@@ -17,12 +18,12 @@ public class JpaFeedbackRepositoryAdapter implements FeedbackRepositoryPort {
 
     public JpaFeedbackRepositoryAdapter(
             PanacheFeedbackRepository panacheRepository,
-            FeedbackPersistenceMapper mapper
-    ) {
+            FeedbackPersistenceMapper mapper) {
         this.panacheRepository = panacheRepository;
         this.mapper = mapper;
     }
 
+    @Timed(value = "feedback.repository.save", description = "Tempo de execução da gravação")
     @Override
     public Feedback save(Feedback feedback) {
         FeedbackEntity entity = mapper.toEntity(feedback);
@@ -30,6 +31,7 @@ public class JpaFeedbackRepositoryAdapter implements FeedbackRepositoryPort {
         return mapper.toDomain(entity);
     }
 
+    @Timed(value = "feedback.repository.findById", description = "Tempo de execução da busca por ID")
     @Override
     public Optional<Feedback> findById(UUID id) {
         return panacheRepository.findByIdOptional(id)

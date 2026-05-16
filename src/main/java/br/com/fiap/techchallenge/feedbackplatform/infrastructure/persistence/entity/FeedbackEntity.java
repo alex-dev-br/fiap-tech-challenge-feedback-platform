@@ -1,6 +1,5 @@
 package br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.entity;
 
-import br.com.fiap.techchallenge.feedbackplatform.domain.enums.StatusProcessamentoFeedback;
 import br.com.fiap.techchallenge.feedbackplatform.domain.enums.Urgencia;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,16 +31,6 @@ public class FeedbackEntity {
 
     @Column(name = "data_criacao", nullable = false)
     private OffsetDateTime dataCriacao;
-
-    @Column(name = "alerta_enviado", nullable = false)
-    private boolean alertaEnviado;
-
-    @Column(name = "data_envio_alerta")
-    private OffsetDateTime dataEnvioAlerta;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status_processamento", nullable = false, length = 30)
-    private StatusProcessamentoFeedback statusProcessamento;
 
     public FeedbackEntity() {
     }
@@ -84,29 +73,5 @@ public class FeedbackEntity {
 
     public void setDataCriacao(OffsetDateTime dataCriacao) {
         this.dataCriacao = dataCriacao;
-    }
-
-    public boolean isAlertaEnviado() {
-        return alertaEnviado;
-    }
-
-    public void setAlertaEnviado(boolean alertaEnviado) {
-        this.alertaEnviado = alertaEnviado;
-    }
-
-    public OffsetDateTime getDataEnvioAlerta() {
-        return dataEnvioAlerta;
-    }
-
-    public void setDataEnvioAlerta(OffsetDateTime dataEnvioAlerta) {
-        this.dataEnvioAlerta = dataEnvioAlerta;
-    }
-
-    public StatusProcessamentoFeedback getStatusProcessamento() {
-        return statusProcessamento;
-    }
-
-    public void setStatusProcessamento(StatusProcessamentoFeedback statusProcessamento) {
-        this.statusProcessamento = statusProcessamento;
     }
 }
