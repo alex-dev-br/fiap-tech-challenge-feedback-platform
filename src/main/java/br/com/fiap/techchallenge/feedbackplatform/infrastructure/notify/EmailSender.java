@@ -2,6 +2,7 @@ package br.com.fiap.techchallenge.feedbackplatform.infrastructure.notify;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -27,6 +28,7 @@ public class EmailSender implements Notification<Feedback> {
     private static final Logger LOG = LoggerFactory.getLogger(EmailSender.class);
 
     private static final ZoneId ZONE_ID_SP = ZoneId.of("America/Sao_Paulo");
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     @Inject
     @ConfigProperty(name = "app.email.connection-string")
@@ -46,26 +48,20 @@ public class EmailSender implements Notification<Feedback> {
 
     @Override
     public void send(Feedback feedback) {
-        EmailClient emailClient = new EmailClientBuilder().connectionString(connectionString).buildClient();
+        EmailClient emailClient = new EmailClientBuilder()
+                .connectionString(connectionString)
+                .buildClient();
 
-        String[] addressesSplitted = adminEmails.split(";");
+        List<EmailAddress> addresses = extrairEmailsAdministradores(adminEmails)
+                .stream()
+                .map(EmailAddress::new)
+                .toList();
 
-        var addresses = Stream.of(addressesSplitted).map(EmailAddress::new).toList();
+        if (addresses.isEmpty()) {
+            throw new IllegalStateException("Nenhum e-mail de administrador configurado em app.admin-emails.");
+        }
 
-        String body = """
-                <html>
-                    <body>
-                        <h1>Feedback crítico recebido</h1>
-                        <p><strong>Descrição:</strong> %s</p>
-                        <p><strong>Urgência:</strong> %s</p>
-                        <p><strong>Data de envio:</strong> %s</p>
-                    </body>
-                </html>
-                """;
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        String dataFormatada = feedback.dataCriacao().atZoneSameInstant(ZONE_ID_SP).format(formatter);
-
-        String bodyFormatted = String.format(body, feedback.descricao(), feedback.urgencia(), dataFormatada);
+        String bodyFormatted = montarCorpoEmail(feedback);
 
         EmailMessage emailMessage = new EmailMessage()
                 .setSenderAddress(senderAddress)
@@ -77,5 +73,51 @@ public class EmailSender implements Notification<Feedback> {
         PollResponse<EmailSendResult> result = poller.waitForCompletion(java.time.Duration.ofSeconds(10));
 
         LOG.info("Email sent with message Id: {}", result.getValue().getId());
+    }
+
+    static String montarCorpoEmail(Feedback feedback) {
+        String body = """
+                <html>
+                    <body>
+                        <h1>Feedback crítico recebido</h1>
+                        <p><strong>Descrição:</strong> %s</p>
+                        <p><strong>Urgência:</strong> %s</p>
+                        <p><strong>Data de envio:</strong> %s</p>
+                    </body>
+                </html>
+                """;
+
+        String descricaoSegura = escaparHtml(feedback.descricao());
+        String urgenciaSegura = escaparHtml(feedback.urgencia().name());
+        String dataFormatada = feedback.dataCriacao()
+                .atZoneSameInstant(ZONE_ID_SP)
+                .format(FORMATTER);
+
+        return String.format(body, descricaoSegura, urgenciaSegura, dataFormatada);
+    }
+
+    static List<String> extrairEmailsAdministradores(String emailsConfigurados) {
+        if (emailsConfigurados == null || emailsConfigurados.isBlank()) {
+            return List.of();
+        }
+
+        return Stream.of(emailsConfigurados.split("[;,]"))
+                .map(String::trim)
+                .filter(email -> !email.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    static String escaparHtml(String valor) {
+        if (valor == null) {
+            return "";
+        }
+
+        return valor
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 }
