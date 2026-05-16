@@ -85,6 +85,61 @@ class CreateFeedbackUseCaseTest {
     }
 
     @Test
+    void deveSalvarFeedbackMesmoQuandoNotificacaoFalhar() {
+        FakeFeedbackRepository repository = new FakeFeedbackRepository();
+        FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.ALTA;
+        Notification<Feedback> notification = feedback -> {
+            throw new RuntimeException("Falha simulada no envio da notificação");
+        };
+
+        CreateFeedbackUseCase useCase = new CreateFeedbackUseCase(
+                repository,
+                classifier,
+                List.of(notification));
+
+        FeedbackCreatedResult result = assertDoesNotThrow(() -> useCase.execute(
+                new CreateFeedbackCommand("Sistema travando muito", 2)));
+
+        assertEquals(Urgencia.ALTA, result.urgencia());
+
+        assertNotNull(repository.feedbackSalvo);
+        assertEquals(result.id(), repository.feedbackSalvo.id());
+        assertEquals("Sistema travando muito", repository.feedbackSalvo.descricao());
+        assertEquals(2, repository.feedbackSalvo.nota());
+    }
+
+    @Test
+    void deveContinuarNotificandoQuandoUmaNotificacaoFalhar() {
+        FakeFeedbackRepository repository = new FakeFeedbackRepository();
+        FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.ALTA;
+        List<String> notificacoesExecutadas = new ArrayList<>();
+
+        Notification<Feedback> primeiraNotificacao = feedback -> notificacoesExecutadas.add("primeira");
+
+        Notification<Feedback> segundaNotificacao = feedback -> {
+            notificacoesExecutadas.add("segunda");
+            throw new RuntimeException("Falha simulada na segunda notificação");
+        };
+
+        Notification<Feedback> terceiraNotificacao = feedback -> notificacoesExecutadas.add("terceira");
+
+        CreateFeedbackUseCase useCase = new CreateFeedbackUseCase(
+                repository,
+                classifier,
+                List.of(primeiraNotificacao, segundaNotificacao, terceiraNotificacao));
+
+        FeedbackCreatedResult result = assertDoesNotThrow(() -> useCase.execute(
+                new CreateFeedbackCommand("Sistema com erro crítico", 1)));
+
+        assertEquals(Urgencia.ALTA, result.urgencia());
+
+        assertNotNull(repository.feedbackSalvo);
+        assertEquals(result.id(), repository.feedbackSalvo.id());
+
+        assertEquals(List.of("primeira", "segunda", "terceira"), notificacoesExecutadas);
+    }
+
+    @Test
     void deveFalharQuandoCommandForNulo() {
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
         FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.BAIXA;
