@@ -22,7 +22,7 @@
 
 ## Links do projeto
 
-> Atualize os links abaixo conforme o repositório e o vídeo final da entrega.
+> TODO: preencher os links finais antes da entrega.
 
 | Item | Link |
 |---|---|
@@ -48,12 +48,18 @@
 10. [Segurança](#segurança)
 11. [Configuração](#configuração)
 12. [Como executar localmente](#como-executar-localmente)
-13. [Testes](#testes)
-14. [Qualidade técnica](#qualidade-técnica)
-15. [Observabilidade](#observabilidade)
-16. [Roteiro de demonstração](#roteiro-de-demonstração)
-17. [Troubleshooting](#troubleshooting)
-18. [Conclusão](#conclusão)
+13. [Deploy](#deploy)
+14. [Testes](#testes)
+15. [Qualidade técnica](#qualidade-técnica)
+16. [Observabilidade](#observabilidade)
+17. [Roteiro de demonstração](#roteiro-de-demonstração)
+18. [Collections para teste](#collections-para-teste)
+19. [Notas sobre Docker, Azurite e escopo do core](#notas-sobre-docker-azurite-e-escopo-do-core)
+20. [Troubleshooting](#troubleshooting)
+21. [Estrutura de pastas](#estrutura-de-pastas)
+22. [Comandos úteis](#comandos-úteis)
+23. [TODOs finais para entrega](#todos-finais-para-entrega)
+24. [Conclusão](#conclusão)
 
 ---
 
@@ -71,7 +77,7 @@ Além do envio de notificações críticas, o serviço registra o histórico das
 
 ## Contexto da Fase 4
 
-A Fase 4 do Tech Challenge propõe uma solução em nuvem/serverless para apoiar o acompanhamento de feedbacks educacionais, automatizando a identificação de avaliações críticas e a comunicação com responsáveis administrativos.
+A Fase 4 do Tech Challenge propõe uma solução em nuvem/serverless para apoiar o acompanhamento de feedbacks educacionais, automatizando a identificação de avaliações críticas, a comunicação com responsáveis administrativos e a geração de relatórios consolidados.
 
 A plataforma foi organizada em componentes especializados:
 
@@ -81,7 +87,7 @@ A plataforma foi organizada em componentes especializados:
 | `az-func-feedback-core` | Recebimento, classificação, persistência e notificação de feedbacks. |
 | `az-func-feedback-report` | Geração semanal de relatório consolidado e armazenamento em Blob Storage. |
 
-O `az-func-feedback-core` concentra o fluxo operacional das avaliações: recebe a manifestação do aluno, aplica as regras de classificação, salva o registro e mantém rastreabilidade das notificações administrativas.
+O `az-func-feedback-core` concentra o fluxo operacional das avaliações: recebe a manifestação do aluno, aplica as regras de classificação, salva o registro, aciona a notificação de feedbacks críticos e mantém rastreabilidade das tentativas de envio.
 
 ---
 
@@ -137,6 +143,12 @@ flowchart LR
 | Azure Key Vault | Fonte segura para segredos em ambiente cloud. |
 | JWT/RBAC | Autorização baseada em papéis (`ALUNO`, `ADMIN`). |
 | H2 | Banco em memória usado em testes automatizados. |
+
+### Escopo do core
+
+O `az-func-feedback-core` **não gera o relatório semanal** e **não grava arquivos em Blob Storage diretamente**. Essas responsabilidades pertencem ao componente `az-func-feedback-report`.
+
+> TODO: confirmar se alguma dependência ou arquivo auxiliar de Blob Storage permanecerá neste repositório ou será movido para o serviço de relatório/infraestrutura.
 
 ---
 
@@ -290,6 +302,13 @@ O domínio `Feedback` exige:
 | `urgencia` | Obrigatória. |
 | `dataCriacao` | Obrigatória. |
 
+A camada REST também valida o payload recebido pela API:
+
+| Campo | Regra na API |
+|---|---|
+| `descricao` | Obrigatória, não vazia, entre 3 e 2000 caracteres. |
+| `nota` | Obrigatória, entre 0 e 10. |
+
 ### Classificação de urgência
 
 A urgência é calculada com base na nota e em palavras críticas presentes na descrição.
@@ -335,7 +354,7 @@ O `EmailSender` aceita múltiplos destinatários em `app.admin-emails` usando `;
 Exemplo:
 
 ```properties
-ADMIN_EMAILS=admin1@email.com; admin2@email.com, admin3@email.com
+app.admin-emails=admin1@email.com; admin2@email.com, admin3@email.com
 ```
 
 O parsing:
@@ -353,13 +372,15 @@ A descrição do feedback é escapada antes de ser inserida no corpo HTML do e-m
 
 ## Endpoints da API
 
-O projeto usa:
+O projeto está documentado considerando o seguinte root path:
 
 ```properties
 quarkus.http.root-path=api
 ```
 
 Portanto, em execução local, os endpoints ficam sob `/api`.
+
+> TODO: confirmar antes da entrega se `quarkus.http.root-path=api` permanece no `src/main/resources/application.properties`. Caso seja removido, ajustar os exemplos para `/avaliacoes` e `/admin/feedbacks/{feedbackId}/notificacoes`.
 
 ### Tabela de endpoints
 
@@ -446,7 +467,7 @@ Accept: application/json
     "feedbackId": "b3a3d6ba-c234-47b9-af77-ec35ad0bf6fe",
     "tipo": "EMAIL",
     "status": "ENVIADA",
-    "dataTentativa": "2026-05-16T21:26:47.670000-03:00",
+    "dataTentativa": "2026-05-16T21:26:47.670000Z",
     "mensagemErro": null
   }
 ]
@@ -461,11 +482,13 @@ Accept: application/json
     "feedbackId": "b3a3d6ba-c234-47b9-af77-ec35ad0bf6fe",
     "tipo": "EMAIL",
     "status": "FALHA",
-    "dataTentativa": "2026-05-16T21:26:47.670000-03:00",
+    "dataTentativa": "2026-05-16T21:26:47.670000Z",
     "mensagemErro": "Timeout ao enviar e-mail"
   }
 ]
 ```
+
+> Observação: o offset de `dataTentativa` pode variar conforme o ambiente de execução. Em Azure, é comum que horários sejam registrados em UTC.
 
 #### Possíveis respostas
 
@@ -516,6 +539,11 @@ Armazena as avaliações recebidas.
 | `urgencia` | `VARCHAR(20)` | `BAIXA`, `MEDIA`, `ALTA` | Classificação calculada. |
 | `data_criacao` | `TIMESTAMP WITH TIME ZONE` | NOT NULL | Data de criação. |
 
+Índices:
+
+- `idx_feedback_data_criacao`;
+- `idx_feedback_urgencia`.
+
 ### Tabela `feedback_notification_log`
 
 Armazena as tentativas de notificação associadas a feedbacks críticos.
@@ -528,6 +556,12 @@ Armazena as tentativas de notificação associadas a feedbacks críticos.
 | `status` | `VARCHAR(20)` | `ENVIADA`, `FALHA` | Resultado da tentativa. |
 | `data_tentativa` | `TIMESTAMP WITH TIME ZONE` | NOT NULL | Data da tentativa. |
 | `mensagem_erro` | `VARCHAR(2000)` | NULL | Mensagem de erro quando houver falha. |
+
+Índices:
+
+- `idx_feedback_notification_log_feedback_id`;
+- `idx_feedback_notification_log_status`;
+- `idx_feedback_notification_log_data_tentativa`.
 
 ---
 
@@ -548,12 +582,14 @@ O serviço valida:
 - chave pública configurada;
 - roles presentes no token.
 
-Exemplo de configuração:
+Exemplo conceitual de configuração:
 
 ```properties
 mp.jwt.verify.issuer=https://feedback-login.com.br/issuer
-mp.jwt.verify.publickey=${JWT_PUBLIC_KEY:${kv//jwt-public-key}}
+mp.jwt.verify.publickey=<chave-publica-ou-referencia-segura>
 ```
+
+> TODO: substituir o exemplo acima pelo nome real do secret ou pela configuração definitiva usada no Azure/Key Vault.
 
 ### Separação de responsabilidade
 
@@ -571,20 +607,40 @@ O arquivo principal fica em:
 src/main/resources/application.properties
 ```
 
-### Variáveis principais
+### Propriedades e origens esperadas
 
-| Variável | Descrição |
+O projeto usa propriedades do Quarkus, variáveis de ambiente e Azure Key Vault para externalizar configurações sensíveis.
+
+| Propriedade da aplicação | Origem esperada | Descrição |
+|---|---|---|
+| `quarkus.azure.keyvault.secret.endpoint` | `QUARKUS_AZURE_KEYVAULT_SECRET_ENDPOINT` | Endpoint do Azure Key Vault. |
+| `quarkus.http.root-path` | `application.properties` | Prefixo base da API. Valor esperado: `api`. |
+| `quarkus.datasource.db-kind` | `QUARKUS_DB_KIND` ou valor configurado no projeto | Tipo do banco. Em produção: PostgreSQL. |
+| `quarkus.datasource.jdbc.url` | Key Vault / variável de ambiente | URL JDBC do PostgreSQL. |
+| `quarkus.datasource.username` | Key Vault / variável de ambiente | Usuário do banco. |
+| `quarkus.datasource.password` | Key Vault / variável de ambiente | Senha do banco. |
+| `app.email.connection-string` | Key Vault / variável de ambiente | Connection string do Azure Communication Email. |
+| `app.admin-emails` | Key Vault / variável de ambiente | Lista de e-mails administrativos. |
+| `app.email.sender-address` | Key Vault / variável de ambiente | Endereço remetente autorizado no Azure Communication Email. |
+| `app.email.subject` | `EMAIL_SUBJECT` ou valor padrão | Assunto do e-mail de alerta. |
+| `mp.jwt.verify.issuer` | configuração da aplicação | Emissor esperado do token JWT. |
+| `mp.jwt.verify.publickey` | Key Vault / variável / arquivo seguro | Chave pública para validação do JWT. |
+
+> TODO: confirmar e documentar os nomes finais dos secrets usados no Azure Key Vault.
+
+### Sugestão de nomes de secrets
+
+Abaixo estão nomes esperados/sugeridos para os secrets, a confirmar conforme o ambiente final:
+
+| Secret | Descrição |
 |---|---|
-| `QUARKUS_AZURE_KEYVAULT_SECRET_ENDPOINT` | Endpoint do Azure Key Vault. |
-| `FEEDBACK_DB_KIND` | Tipo do banco, normalmente `postgresql`. |
-| `FEEDBACK_DB_URL` | URL JDBC do banco. |
-| `FEEDBACK_DB_USER` | Usuário do banco. |
-| `FEEDBACK_DB_PASSWORD` | Senha do banco. |
-| `EMAIL_CONNECTION_STRING` | Connection string do Azure Communication Email. |
-| `ADMIN_EMAILS` | Lista de e-mails dos administradores. |
-| `EMAIL_SENDER_ADDRESS` | Endereço remetente autorizado no Azure Communication Email. |
-| `EMAIL_SUBJECT` | Assunto do e-mail. |
-| `JWT_PUBLIC_KEY` | Chave pública para validação de JWT. |
+| `FeedBackDBUrl` | URL JDBC do PostgreSQL. |
+| `FeedbackDBUser` | Usuário do banco. |
+| `FeedBackDBPassword` | Senha do banco. |
+| `FeedbackDBEmailConnectionString` | Connection string do Azure Communication Email. |
+| `FeedbackAdminEmailList` | Lista de e-mails administrativos. |
+| `FeedbackEmailSenderAddress` | E-mail remetente autorizado. |
+| `jwt-public-key` | Chave pública para validação dos tokens. TODO: confirmar nome real. |
 
 ### Configuração sensível
 
@@ -592,21 +648,27 @@ Valores sensíveis não devem ser versionados no Git.
 
 Em produção, banco, e-mail e chave pública JWT devem vir de:
 
-1. variáveis de ambiente; ou
+1. variáveis de ambiente da Function App; ou
 2. Azure Key Vault.
+
+Em testes automatizados, o projeto usa H2 e valores mockados para e-mail/JWT.
 
 ### Perfil de teste
 
-Os testes usam H2 em memória e valores mockados para e-mail/JWT.
-
-Exemplo conceitual:
+Exemplo conceitual de configuração de teste:
 
 ```properties
 quarkus.datasource.db-kind=h2
 quarkus.datasource.jdbc.url=jdbc:h2:mem:feedback_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+quarkus.datasource.username=sa
+quarkus.datasource.password=sa
+
 app.email.connection-string=endpoint=https://localhost;accesskey=mock
 app.admin-emails=test@example.com
 app.email.sender-address=test@example.com
+app.email.subject=Feedback Test
+
+mp.jwt.verify.issuer=https://feedback-login.com.br/issuer
 mp.jwt.verify.publickey=mock-key
 ```
 
@@ -646,9 +708,11 @@ mp.jwt.verify.publickey=mock-key
 ### Clonar o repositório
 
 ```powershell
-git clone https://github.com/KervinCandido/az-func-feedback-core.git
+git clone TODO
 cd az-func-feedback-core
 ```
+
+> TODO: substituir `TODO` pela URL real do repositório.
 
 ### Rodar em modo Quarkus dev
 
@@ -668,6 +732,8 @@ Exemplo:
 http://localhost:8080/api/avaliacoes
 ```
 
+> TODO: confirmar se a execução local em `quarkus:dev` será demonstrada com H2, PostgreSQL local ou banco cloud.
+
 ### Rodar como Azure Function local
 
 Empacote o projeto:
@@ -682,6 +748,60 @@ Depois, acesse o diretório gerado:
 cd target\azure-functions\func-feedback-core
 func host start
 ```
+
+> TODO: confirmar se o comando `func host start` será executado na porta padrão ou com porta customizada no roteiro de demonstração.
+
+---
+
+## Deploy
+
+O projeto é empacotado como **Azure Function HTTP** por meio do **Azure Functions Maven Plugin**.
+
+### Build para deploy
+
+```powershell
+mvn clean package
+```
+
+Após o build, os artefatos da Function são gerados em:
+
+```text
+target/azure-functions/func-feedback-core
+```
+
+### Configurações necessárias no Azure
+
+A Function App precisa ter acesso às configurações de banco, JWT, e-mail e Key Vault por meio de **App Settings** e/ou **Azure Key Vault**.
+
+Configurações esperadas:
+
+- endpoint do Azure Key Vault;
+- URL JDBC do PostgreSQL;
+- usuário e senha do banco;
+- connection string do Azure Communication Email;
+- e-mail remetente autorizado;
+- lista de e-mails administrativos;
+- issuer JWT;
+- chave pública JWT.
+
+### Deploy automatizado
+
+O deploy pode ser realizado via GitHub Actions, executando o build Maven e publicando o pacote gerado para a Function App `func-feedback-core`.
+
+> TODO: inserir o nome definitivo da Function App, o nome do workflow e os secrets configurados no GitHub Actions.
+
+### Checklist mínimo de deploy
+
+- [ ] Function App criada no Azure.
+- [ ] App Settings configurados.
+- [ ] Key Vault configurado.
+- [ ] Permissão da Function App para ler secrets do Key Vault.
+- [ ] Banco PostgreSQL acessível pela Function App.
+- [ ] Azure Communication Email configurado com remetente autorizado.
+- [ ] Chave pública JWT configurada.
+- [ ] GitHub Actions configurado para deploy automatizado.
+- [ ] Teste do endpoint `/api/avaliacoes` em ambiente cloud.
+- [ ] Teste do endpoint `/api/admin/feedbacks/{feedbackId}/notificacoes` em ambiente cloud.
 
 ---
 
@@ -727,6 +847,8 @@ Skipped: 0
 BUILD SUCCESS
 ```
 
+> TODO: atualizar este número caso novos testes sejam adicionados antes da entrega.
+
 ---
 
 ## Qualidade técnica
@@ -759,14 +881,14 @@ A criação do feedback prioriza o registro da avaliação como dado principal d
 Receber feedback → Classificar → Persistir → Notificar se crítico → Registrar tentativa
 ```
 
-Esse desenho garante rastreabilidade do fluxo sem acoplar o resultado da avaliação à disponibilidade momentânea do provedor de e-mail.
+Esse desenho garante rastreabilidade do fluxo sem impedir o recebimento da avaliação caso ocorra uma falha momentânea no provedor de e-mail ou no registro do log de notificação.
 
 ### Segurança
 
 - endpoints protegidos por role;
 - JWT validado por issuer e chave pública;
-- segredos externos via variáveis/Key Vault;
-- configuração principal sem fallbacks sensíveis;
+- valores sensíveis externalizados via variáveis de ambiente ou Azure Key Vault;
+- perfis de teste usando H2 e valores mockados;
 - escape de conteúdo dinâmico no HTML do e-mail.
 
 ### Testabilidade
@@ -774,6 +896,7 @@ Esse desenho garante rastreabilidade do fluxo sem acoplar o resultado da avalia�
 O projeto cobre:
 
 - validações do domínio `Feedback`;
+- validações do domínio `FeedbackNotificationLog`;
 - classificação de urgência;
 - criação do feedback;
 - envio de notificações;
@@ -789,17 +912,26 @@ O projeto cobre:
 
 O projeto possui integração com Micrometer/OpenTelemetry.
 
-Há instrumentação com `@Timed` em operações de repositório, como:
+Há instrumentação com `@Counted` e `@Timed` em pontos relevantes do fluxo.
 
-- salvamento de feedback;
-- salvamento de log de notificação;
-- busca de logs por `feedbackId`.
+Métricas instrumentadas no código:
+
+- `criacoes.avaliacoes`;
+- `criacao.avaliacao.time`;
+- `feedback.repository.save`;
+- `feedback.repository.findById`;
+- `feedback.notification.log.repository.save`;
+- `feedback.notification.log.repository.findByFeedbackId`.
 
 O prefixo padrão das métricas é:
 
 ```properties
 feedback.metrics.prefix=feedback.core.
 ```
+
+A exportação para Azure/Application Insights depende das configurações da Function App e do ambiente de execução.
+
+> TODO: documentar a configuração final de Application Insights/OpenTelemetry usada no ambiente cloud.
 
 ---
 
@@ -822,6 +954,7 @@ POST /api/avaliacoes
 ```
 
 3. Verificar response com `urgencia = BAIXA`.
+4. Explicar que feedbacks `BAIXA` não geram notificação administrativa.
 
 ### Cenário 2 — Avaliação crítica por nota
 
@@ -896,6 +1029,22 @@ Sugestão de cenários:
 8. Validar 401 sem token.
 9. Validar 403 com role incorreta.
 
+> TODO: adicionar a collection real ao repositório ou remover esta seção caso a equipe opte por demonstrar apenas via cURL/PowerShell/Postman local.
+
+---
+
+## Notas sobre Docker, Azurite e escopo do core
+
+O deploy principal deste serviço é via **Azure Functions Maven Plugin**, não via imagem Docker.
+
+Os Dockerfiles gerados pelo Quarkus estão em `src/main/docker`, mas devem ser tratados como artefatos auxiliares. Como o projeto usa Java 25, qualquer execução via Docker JVM deve garantir runtime compatível com Java 25.
+
+> TODO: atualizar/remover Dockerfiles que usem runtime Java 21 caso a equipe decida manter execução via Docker.
+
+Caso exista `docker-compose.yml` com Azurite neste repositório, ele deve ser interpretado como recurso auxiliar de desenvolvimento. O fluxo principal do `az-func-feedback-core` não utiliza Blob Storage diretamente; o Blob Storage pertence ao componente de relatório.
+
+> TODO: decidir se o `docker-compose.yml` com Azurite permanece neste repositório, migra para `az-func-feedback-report` ou fica em um repositório/pasta de infraestrutura.
+
 ---
 
 ## Troubleshooting
@@ -915,6 +1064,8 @@ Verifique os secrets do repositório:
 - `AZURE_TENANT_ID`;
 - `AZURE_SUBSCRIPTION_ID`;
 - `AZURE_CLIENT_SECRET`, se estiver usando Service Principal com secret.
+
+> TODO: ajustar esta seção conforme o modelo real de autenticação usado no workflow.
 
 ### Testes falhando por FK entre `feedback_notification_log` e `feedback`
 
@@ -1020,6 +1171,24 @@ git checkout -b docs/atualiza-readme-core
 
 ---
 
+## TODOs finais para entrega
+
+Antes da entrega final, revisar:
+
+- [ ] Preencher links reais dos repositórios.
+- [ ] Inserir link do vídeo de apresentação.
+- [ ] Inserir ou remover referência à collection Postman/Insomnia.
+- [ ] Confirmar `quarkus.http.root-path=api`.
+- [ ] Confirmar nomes reais dos secrets no Azure Key Vault.
+- [ ] Confirmar configuração real de JWT no core.
+- [ ] Documentar workflow real de deploy no GitHub Actions.
+- [ ] Documentar configuração final de observabilidade/Application Insights.
+- [ ] Confirmar se `docker-compose.yml` com Azurite permanece no core.
+- [ ] Confirmar se dependências relacionadas a Blob Storage permanecem no core ou migram para o report.
+- [ ] Atualizar número de testes caso a suíte mude.
+
+---
+
 ## Conclusão
 
 O `az-func-feedback-core` entrega o fluxo principal de feedbacks da Fase 4 com foco em simplicidade, segurança, rastreabilidade e aderência a uma arquitetura em camadas.
@@ -1028,4 +1197,4 @@ A solução permite que alunos enviem avaliações, classifica automaticamente a
 
 A consulta administrativa dos logs torna o comportamento demonstrável e facilita auditoria técnica da solução.
 
-Este README é uma documentação viva. Em caso de evolução da API ou dos componentes Azure, recomenda-se atualizá-lo junto com o código.
+Este README é uma documentação viva. Em caso de evolução da API, das configurações ou dos componentes Azure, recomenda-se atualizá-lo junto com o código.
