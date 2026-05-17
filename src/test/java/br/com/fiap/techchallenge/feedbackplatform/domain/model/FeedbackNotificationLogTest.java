@@ -4,11 +4,14 @@ import br.com.fiap.techchallenge.feedbackplatform.domain.enums.FeedbackNotificat
 import br.com.fiap.techchallenge.feedbackplatform.domain.enums.FeedbackNotificationType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @DisplayName("Domínio de log de notificação de feedback")
 class FeedbackNotificationLogTest {
@@ -56,45 +59,109 @@ class FeedbackNotificationLogTest {
     }
 
     @Test
+    @DisplayName("Deve falhar quando o id for nulo")
+    void deveFalharQuandoIdForNulo() {
+        // Arrange
+        UUID id = null;
+
+        // Act & Assert
+        assertThrows(NullPointerException.class, () ->
+                new FeedbackNotificationLog(
+                        id,
+                        UUID.randomUUID(),
+                        FeedbackNotificationType.EMAIL,
+                        FeedbackNotificationStatus.ENVIADA,
+                        OffsetDateTime.now(),
+                        null));
+    }
+
+    @Test
     @DisplayName("Deve falhar quando o feedbackId for nulo")
     void deveFalharQuandoFeedbackIdForNulo() {
         // Arrange
-        FeedbackNotificationType tipo = FeedbackNotificationType.EMAIL;
+        UUID feedbackId = null;
 
-        // Act
-        Executable action = () -> FeedbackNotificationLog.enviada(null, tipo);
-
-        // Assert
-        assertThrows(NullPointerException.class, action);
+        // Act & Assert
+        assertThrows(NullPointerException.class, () ->
+                FeedbackNotificationLog.enviada(feedbackId, FeedbackNotificationType.EMAIL));
     }
 
     @Test
     @DisplayName("Deve falhar quando o tipo for nulo")
     void deveFalharQuandoTipoForNulo() {
         // Arrange
-        UUID feedbackId = UUID.randomUUID();
+        FeedbackNotificationType tipo = null;
 
-        // Act
-        Executable action = () -> FeedbackNotificationLog.enviada(feedbackId, null);
-
-        // Assert
-        assertThrows(NullPointerException.class, action);
+        // Act & Assert
+        assertThrows(NullPointerException.class, () ->
+                FeedbackNotificationLog.enviada(UUID.randomUUID(), tipo));
     }
 
     @Test
-    @DisplayName("Deve falhar quando a mensagem de erro estiver vazia para falha")
+    @DisplayName("Deve falhar quando o status for nulo")
+    void deveFalharQuandoStatusForNulo() {
+        // Arrange
+        FeedbackNotificationStatus status = null;
+
+        // Act & Assert
+        assertThrows(NullPointerException.class, () ->
+                new FeedbackNotificationLog(
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        FeedbackNotificationType.EMAIL,
+                        status,
+                        OffsetDateTime.now(),
+                        null));
+    }
+
+    @Test
+    @DisplayName("Deve falhar quando a data de tentativa for nula")
+    void deveFalharQuandoDataTentativaForNula() {
+        // Arrange
+        OffsetDateTime dataTentativa = null;
+
+        // Act & Assert
+        assertThrows(NullPointerException.class, () ->
+                new FeedbackNotificationLog(
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        FeedbackNotificationType.EMAIL,
+                        FeedbackNotificationStatus.ENVIADA,
+                        dataTentativa,
+                        null));
+    }
+
+    @Test
+    @DisplayName("Deve falhar quando a mensagem de erro estiver vazia para status FALHA")
     void deveFalharQuandoMensagemErroForVaziaParaFalha() {
         // Arrange
-        UUID feedbackId = UUID.randomUUID();
+        String mensagemErro = "   ";
+
+        // Act & Assert
+        assertThrows(IllegalArgumentException.class, () ->
+                FeedbackNotificationLog.falha(
+                        UUID.randomUUID(),
+                        FeedbackNotificationType.EMAIL,
+                        mensagemErro));
+    }
+
+    @Test
+    @DisplayName("Deve normalizar mensagem vazia para nula quando status for ENVIADA")
+    void deveNormalizarMensagemErroVaziaParaNullQuandoStatusForEnviada() {
+        // Arrange
+        String mensagemErro = "   ";
 
         // Act
-        Executable action = () -> FeedbackNotificationLog.falha(
-                feedbackId,
+        FeedbackNotificationLog log = new FeedbackNotificationLog(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
                 FeedbackNotificationType.EMAIL,
-                "   ");
+                FeedbackNotificationStatus.ENVIADA,
+                OffsetDateTime.now(),
+                mensagemErro);
 
         // Assert
-        assertThrows(IllegalArgumentException.class, action);
+        assertNull(log.mensagemErro());
     }
 
     @Test
@@ -114,7 +181,7 @@ class FeedbackNotificationLogTest {
     }
 
     @Test
-    @DisplayName("Deve remover espaços no início e no fim da mensagem de erro")
+    @DisplayName("Deve remover espaços da mensagem de erro")
     void deveRemoverEspacosDaMensagemErro() {
         // Arrange
         String mensagemErro = "   Erro ao enviar e-mail   ";
