@@ -7,6 +7,9 @@ import br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.map
 import io.micrometer.core.annotation.Timed;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.List;
+import java.util.UUID;
+
 @ApplicationScoped
 public class JpaFeedbackNotificationLogRepositoryAdapter implements FeedbackNotificationLogRepositoryPort {
 
@@ -26,5 +29,14 @@ public class JpaFeedbackNotificationLogRepositoryAdapter implements FeedbackNoti
         FeedbackNotificationLogEntity entity = mapper.toEntity(notificationLog);
         panacheRepository.persist(entity);
         return mapper.toDomain(entity);
+    }
+
+    @Timed(value = "feedback.notification.log.repository.findByFeedbackId", description = "Tempo de execução da busca de logs por feedback")
+    @Override
+    public List<FeedbackNotificationLog> findByFeedbackId(UUID feedbackId) {
+        return panacheRepository.findByFeedbackId(feedbackId)
+                .stream()
+                .map(mapper::toDomain)
+                .toList();
     }
 }

@@ -173,8 +173,16 @@ class CreateFeedbackUseCaseTest {
     @Test
     void deveManterCriacaoMesmoQuandoRegistroDoLogFalhar() {
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
-        FeedbackNotificationLogRepositoryPort notificationLogRepository = notificationLog -> {
-            throw new RuntimeException("Falha simulada ao gravar log");
+        FeedbackNotificationLogRepositoryPort notificationLogRepository = new FeedbackNotificationLogRepositoryPort() {
+            @Override
+            public FeedbackNotificationLog save(FeedbackNotificationLog notificationLog) {
+                throw new RuntimeException("Falha simulada ao gravar log");
+            }
+
+            @Override
+            public List<FeedbackNotificationLog> findByFeedbackId(UUID feedbackId) {
+                return List.of();
+            }
         };
         FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.ALTA;
         List<Feedback> notificacoes = new ArrayList<>();
@@ -236,5 +244,13 @@ class CreateFeedbackUseCaseTest {
             logs.add(notificationLog);
             return notificationLog;
         }
+
+        @Override
+        public List<FeedbackNotificationLog> findByFeedbackId(UUID feedbackId) {
+            return logs.stream()
+                    .filter(log -> log.feedbackId().equals(feedbackId))
+                    .toList();
+        }
     }
+
 }

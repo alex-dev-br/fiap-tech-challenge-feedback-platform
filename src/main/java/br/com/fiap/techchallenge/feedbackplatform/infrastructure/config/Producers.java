@@ -6,6 +6,7 @@ import br.com.fiap.techchallenge.feedbackplatform.application.ports.FeedbackNoti
 import br.com.fiap.techchallenge.feedbackplatform.application.ports.FeedbackRepositoryPort;
 import br.com.fiap.techchallenge.feedbackplatform.application.ports.FeedbackUrgenciaClassifier;
 import br.com.fiap.techchallenge.feedbackplatform.application.usecase.CreateFeedbackUseCase;
+import br.com.fiap.techchallenge.feedbackplatform.application.usecase.ListFeedbackNotificationLogsUseCase;
 import br.com.fiap.techchallenge.feedbackplatform.infrastructure.notify.EmailSender;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
@@ -26,5 +27,13 @@ public class Producers {
                 notificationLogRepository,
                 urgenciaClassifier,
                 List.of(emailSender::send));
+    }
+
+    @Produces
+    @ApplicationScoped
+    public ListFeedbackNotificationLogsUseCase listFeedbackNotificationLogsUseCaseProducer(
+            FeedbackNotificationLogRepositoryPort notificationLogRepository) {
+
+        return new ListFeedbackNotificationLogsUseCase(notificationLogRepository);
     }
 }

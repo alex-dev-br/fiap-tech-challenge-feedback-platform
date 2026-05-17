@@ -1,5 +1,6 @@
 package br.com.fiap.techchallenge.feedbackplatform.infrastructure.rest;
 
+import br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.repository.PanacheFeedbackNotificationLogRepository;
 import br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.repository.PanacheFeedbackRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
@@ -23,9 +24,13 @@ class AvaliacaoResourceTest {
     @Inject
     PanacheFeedbackRepository feedbackRepository;
 
+    @Inject
+    PanacheFeedbackNotificationLogRepository notificationLogRepository;
+
     @BeforeEach
     @Transactional
     void limparBanco() {
+        notificationLogRepository.deleteAll();
         feedbackRepository.deleteAll();
     }
 
