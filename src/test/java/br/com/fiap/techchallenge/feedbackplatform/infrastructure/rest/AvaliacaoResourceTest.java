@@ -3,13 +3,15 @@ package br.com.fiap.techchallenge.feedbackplatform.infrastructure.rest;
 import br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.repository.PanacheFeedbackNotificationLogRepository;
 import br.com.fiap.techchallenge.feedbackplatform.infrastructure.persistence.repository.PanacheFeedbackRepository;
 import io.quarkus.test.junit.QuarkusTest;
-import io.restassured.http.ContentType;
-import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.jwt.Claim;
 import io.quarkus.test.security.jwt.JwtSecurity;
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
+import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
@@ -19,6 +21,7 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 @TestSecurity(user = "testUser", roles = { "ALUNO" })
 @JwtSecurity(claims = { @Claim(key = "groups", value = "ALUNO") })
+@DisplayName("API de criação de avaliações")
 class AvaliacaoResourceTest {
 
     @Inject
@@ -35,18 +38,25 @@ class AvaliacaoResourceTest {
     }
 
     @Test
+    @DisplayName("Deve criar avaliação com sucesso quando usuário possuir role ALUNO")
     void deveCriarAvaliacaoComSucesso() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "A aula foi muito boa",
+                    "nota": 9
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                                "descricao": "A aula foi muito boa",
-                                "nota": 9
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(201)
                 .header("Location", notNullValue())
                 .body("id", notNullValue())
@@ -57,18 +67,25 @@ class AvaliacaoResourceTest {
     }
 
     @Test
+    @DisplayName("Deve criar avaliação urgente quando descrição contiver palavra crítica")
     void deveCriarAvaliacaoUrgenteQuandoDescricaoContiverPalavraCritica() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "A plataforma está travando durante a aula",
+                    "nota": 8
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "descricao": "A plataforma está travando durante a aula",
-                          "nota": 8
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(201)
                 .header("Location", notNullValue())
                 .body("id", notNullValue())
@@ -79,135 +96,189 @@ class AvaliacaoResourceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar 400 quando nota for maior que dez")
     void deveRetornarBadRequestQuandoNotaForMaiorQueDez() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "A aula foi boa, mas o áudio estava ruim",
+                    "nota": 11
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "descricao": "A aula foi boa, mas o áudio estava ruim",
-                          "nota": 11
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(400);
     }
 
     @Test
+    @DisplayName("Deve retornar 400 quando nota for menor que zero")
     void deveRetornarBadRequestQuandoNotaForMenorQueZero() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "A aula foi boa, mas o áudio estava ruim",
+                    "nota": -1
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "descricao": "A aula foi boa, mas o áudio estava ruim",
-                          "nota": -1
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(400);
     }
 
     @Test
+    @DisplayName("Deve retornar 400 quando descrição estiver vazia")
     void deveRetornarBadRequestQuandoDescricaoForVazia() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "   ",
+                    "nota": 5
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "descricao": "   ",
-                          "nota": 5
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(400);
     }
 
     @Test
+    @DisplayName("Deve retornar 400 quando nota não for informada")
     void deveRetornarBadRequestQuandoNotaNaoForInformada() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "A aula foi boa, mas o áudio estava ruim"
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "descricao": "A aula foi boa, mas o áudio estava ruim"
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(400);
     }
 
     @Test
+    @DisplayName("Deve retornar 400 quando descrição não for informada")
     void deveRetornarBadRequestQuandoDescricaoNaoForInformada() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "nota": 5
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "nota": 5
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(400);
     }
 
     @Test
+    @DisplayName("Deve retornar 403 quando usuário possuir role PROFESSOR")
     @TestSecurity(user = "professorUser", roles = { "PROFESSOR" })
     @JwtSecurity(claims = { @Claim(key = "groups", value = "PROFESSOR") })
     void deveRetornarForbiddenQuandoUsuarioForProfessor() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "Tentando avaliar como professor",
+                    "nota": 10
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "descricao": "Tentando avaliar como professor",
-                          "nota": 10
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(403);
     }
 
     @Test
+    @DisplayName("Deve retornar 403 quando usuário possuir role ADMIN")
     @TestSecurity(user = "adminUser", roles = { "ADMIN" })
     @JwtSecurity(claims = { @Claim(key = "groups", value = "ADMIN") })
     void deveRetornarForbiddenQuandoUsuarioForAdmin() {
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "Tentando avaliar como admin",
+                    "nota": 5
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                            "descricao": "Tentando avaliar como admin",
-                            "nota": 5
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(403);
     }
 
     @Test
-    @TestSecurity(user = "", roles = {}) // Remove o usuário mockado
+    @DisplayName("Deve retornar 401 quando usuário não estiver autenticado")
+    @TestSecurity(user = "", roles = {})
     void deveRetornarUnauthorizedQuandoNaoAutenticado() {
-        // Ao removermos o mock, o Quarkus vai exigir o header Authorization de verdade
-        given()
+        // Arrange
+        String requestBody = """
+                {
+                    "descricao": "Tentando avaliar sem token",
+                    "nota": 5
+                }
+                """;
+
+        // Act
+        Response response = given()
                 .contentType(ContentType.JSON)
-                .body("""
-                        {
-                                "descricao": "Tentando avaliar sem token",
-                                "nota": 5
-                        }
-                        """)
+                .body(requestBody)
                 .when()
-                .post("/avaliacoes")
-                .then()
-                // Se a chamada real for feita sem token, retorna 401
+                .post("/avaliacoes");
+
+        // Assert
+        response.then()
                 .statusCode(401);
     }
 }

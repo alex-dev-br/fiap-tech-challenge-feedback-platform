@@ -12,8 +12,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.jwt.Claim;
 import io.quarkus.test.security.jwt.JwtSecurity;
+import io.restassured.response.Response;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
@@ -26,6 +28,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.notNullValue;
 
 @QuarkusTest
+@DisplayName("API administrativa de logs de notificação")
 class AdminFeedbackNotificationLogResourceTest {
 
     @Inject
@@ -43,15 +46,20 @@ class AdminFeedbackNotificationLogResourceTest {
     }
 
     @Test
+    @DisplayName("Deve listar logs de notificação do feedback quando usuário for ADMIN")
     @TestSecurity(user = "adminUser", roles = { "ADMIN" })
     @JwtSecurity(claims = { @Claim(key = "groups", value = "ADMIN") })
     void deveListarLogsDeNotificacaoDoFeedbackQuandoUsuarioForAdmin() {
+        // Arrange
         UUID feedbackId = criarFeedbackComLogs();
 
-        given()
+        // Act
+        Response response = given()
                 .when()
-                .get("/admin/feedbacks/{feedbackId}/notificacoes", feedbackId)
-                .then()
+                .get("/admin/feedbacks/{feedbackId}/notificacoes", feedbackId);
+
+        // Assert
+        response.then()
                 .statusCode(200)
                 .body("$", hasSize(2))
                 .body("[0].id", notNullValue())
@@ -67,41 +75,56 @@ class AdminFeedbackNotificationLogResourceTest {
     }
 
     @Test
+    @DisplayName("Deve retornar lista vazia quando feedback não possuir logs")
     @TestSecurity(user = "adminUser", roles = { "ADMIN" })
     @JwtSecurity(claims = { @Claim(key = "groups", value = "ADMIN") })
     void deveRetornarListaVaziaQuandoFeedbackNaoPossuirLogs() {
+        // Arrange
         UUID feedbackId = criarFeedbackSemLogs();
 
-        given()
+        // Act
+        Response response = given()
                 .when()
-                .get("/admin/feedbacks/{feedbackId}/notificacoes", feedbackId)
-                .then()
+                .get("/admin/feedbacks/{feedbackId}/notificacoes", feedbackId);
+
+        // Assert
+        response.then()
                 .statusCode(200)
                 .body("$", hasSize(0));
     }
 
     @Test
+    @DisplayName("Deve retornar 403 quando usuário for ALUNO")
     @TestSecurity(user = "alunoUser", roles = { "ALUNO" })
     @JwtSecurity(claims = { @Claim(key = "groups", value = "ALUNO") })
     void deveRetornarForbiddenQuandoUsuarioForAluno() {
+        // Arrange
         UUID feedbackId = criarFeedbackComLogs();
 
-        given()
+        // Act
+        Response response = given()
                 .when()
-                .get("/admin/feedbacks/{feedbackId}/notificacoes", feedbackId)
-                .then()
+                .get("/admin/feedbacks/{feedbackId}/notificacoes", feedbackId);
+
+        // Assert
+        response.then()
                 .statusCode(403);
     }
 
     @Test
+    @DisplayName("Deve retornar 401 quando usuário não estiver autenticado")
     @TestSecurity(user = "", roles = {})
     void deveRetornarUnauthorizedQuandoUsuarioNaoEstiverAutenticado() {
+        // Arrange
         UUID feedbackId = criarFeedbackComLogs();
 
-        given()
+        // Act
+        Response response = given()
                 .when()
-                .get("/admin/feedbacks/{feedbackId}/notificacoes", feedbackId)
-                .then()
+                .get("/admin/feedbacks/{feedbackId}/notificacoes", feedbackId);
+
+        // Assert
+        response.then()
                 .statusCode(401);
     }
 

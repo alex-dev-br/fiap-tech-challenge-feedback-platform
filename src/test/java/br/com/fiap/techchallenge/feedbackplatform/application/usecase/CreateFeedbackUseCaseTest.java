@@ -10,7 +10,9 @@ import br.com.fiap.techchallenge.feedbackplatform.domain.enums.FeedbackNotificat
 import br.com.fiap.techchallenge.feedbackplatform.domain.enums.Urgencia;
 import br.com.fiap.techchallenge.feedbackplatform.domain.model.Feedback;
 import br.com.fiap.techchallenge.feedbackplatform.domain.model.FeedbackNotificationLog;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,10 +21,13 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@DisplayName("Caso de uso de criação de feedback")
 class CreateFeedbackUseCaseTest {
 
     @Test
+    @DisplayName("Deve criar e salvar feedback sem notificar quando a urgência for baixa")
     void deveCriarSalvarFeedbackERetornarResultado() {
+        // Arrange
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
         FakeFeedbackNotificationLogRepository notificationLogRepository = new FakeFeedbackNotificationLogRepository();
         FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.BAIXA;
@@ -35,9 +40,12 @@ class CreateFeedbackUseCaseTest {
                 classifier,
                 List.of(notification));
 
-        FeedbackCreatedResult result = useCase.execute(
-                new CreateFeedbackCommand("Aula muito boa", 9));
+        CreateFeedbackCommand command = new CreateFeedbackCommand("Aula muito boa", 9);
 
+        // Act
+        FeedbackCreatedResult result = useCase.execute(command);
+
+        // Assert
         assertNotNull(result.id());
         assertEquals("Aula muito boa", result.descricao());
         assertEquals(9, result.nota());
@@ -52,7 +60,9 @@ class CreateFeedbackUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve notificar e registrar log ENVIADA quando o feedback for urgente")
     void deveNotificarQuandoFeedbackForUrgenteERegistrarLogEnviado() {
+        // Arrange
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
         FakeFeedbackNotificationLogRepository notificationLogRepository = new FakeFeedbackNotificationLogRepository();
         FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.ALTA;
@@ -65,9 +75,12 @@ class CreateFeedbackUseCaseTest {
                 classifier,
                 List.of(notification));
 
-        FeedbackCreatedResult result = useCase.execute(
-                new CreateFeedbackCommand("Sistema travando", 8));
+        CreateFeedbackCommand command = new CreateFeedbackCommand("Sistema travando", 8);
 
+        // Act
+        FeedbackCreatedResult result = useCase.execute(command);
+
+        // Assert
         assertEquals(Urgencia.ALTA, result.urgencia());
         assertEquals(1, notificacoes.size());
         assertEquals(result.id(), notificacoes.getFirst().id());
@@ -79,7 +92,9 @@ class CreateFeedbackUseCaseTest {
     }
 
     @Test
+    @DisplayName("Não deve notificar nem registrar log quando o feedback não for urgente")
     void naoDeveNotificarNemRegistrarLogQuandoFeedbackNaoForUrgente() {
+        // Arrange
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
         FakeFeedbackNotificationLogRepository notificationLogRepository = new FakeFeedbackNotificationLogRepository();
         FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.MEDIA;
@@ -92,16 +107,21 @@ class CreateFeedbackUseCaseTest {
                 classifier,
                 List.of(notification));
 
-        FeedbackCreatedResult result = useCase.execute(
-                new CreateFeedbackCommand("Aula regular", 5));
+        CreateFeedbackCommand command = new CreateFeedbackCommand("Aula regular", 5);
 
+        // Act
+        FeedbackCreatedResult result = useCase.execute(command);
+
+        // Assert
         assertEquals(Urgencia.MEDIA, result.urgencia());
         assertTrue(notificacoes.isEmpty());
         assertTrue(notificationLogRepository.logs.isEmpty());
     }
 
     @Test
+    @DisplayName("Deve salvar feedback e registrar log FALHA quando a notificação falhar")
     void deveSalvarFeedbackMesmoQuandoNotificacaoFalharERegistrarLogDeFalha() {
+        // Arrange
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
         FakeFeedbackNotificationLogRepository notificationLogRepository = new FakeFeedbackNotificationLogRepository();
         FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.ALTA;
@@ -115,9 +135,12 @@ class CreateFeedbackUseCaseTest {
                 classifier,
                 List.of(notification));
 
-        FeedbackCreatedResult result = assertDoesNotThrow(() -> useCase.execute(
-                new CreateFeedbackCommand("Sistema travando muito", 2)));
+        CreateFeedbackCommand command = new CreateFeedbackCommand("Sistema travando muito", 2);
 
+        // Act
+        FeedbackCreatedResult result = assertDoesNotThrow(() -> useCase.execute(command));
+
+        // Assert
         assertEquals(Urgencia.ALTA, result.urgencia());
 
         assertNotNull(repository.feedbackSalvo);
@@ -132,7 +155,9 @@ class CreateFeedbackUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve continuar notificando quando uma notificação falhar e registrar cada tentativa")
     void deveContinuarNotificandoQuandoUmaNotificacaoFalharERegistrarCadaTentativa() {
+        // Arrange
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
         FakeFeedbackNotificationLogRepository notificationLogRepository = new FakeFeedbackNotificationLogRepository();
         FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.ALTA;
@@ -153,9 +178,12 @@ class CreateFeedbackUseCaseTest {
                 classifier,
                 List.of(primeiraNotificacao, segundaNotificacao, terceiraNotificacao));
 
-        FeedbackCreatedResult result = assertDoesNotThrow(() -> useCase.execute(
-                new CreateFeedbackCommand("Sistema com erro crítico", 1)));
+        CreateFeedbackCommand command = new CreateFeedbackCommand("Sistema com erro crítico", 1);
 
+        // Act
+        FeedbackCreatedResult result = assertDoesNotThrow(() -> useCase.execute(command));
+
+        // Assert
         assertEquals(Urgencia.ALTA, result.urgencia());
 
         assertNotNull(repository.feedbackSalvo);
@@ -171,7 +199,9 @@ class CreateFeedbackUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve manter a criação mesmo quando o registro do log falhar")
     void deveManterCriacaoMesmoQuandoRegistroDoLogFalhar() {
+        // Arrange
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
         FeedbackNotificationLogRepositoryPort notificationLogRepository = new FeedbackNotificationLogRepositoryPort() {
             @Override
@@ -194,9 +224,12 @@ class CreateFeedbackUseCaseTest {
                 classifier,
                 List.of(notification));
 
-        FeedbackCreatedResult result = assertDoesNotThrow(() -> useCase.execute(
-                new CreateFeedbackCommand("Sistema com bug", 1)));
+        CreateFeedbackCommand command = new CreateFeedbackCommand("Sistema com bug", 1);
 
+        // Act
+        FeedbackCreatedResult result = assertDoesNotThrow(() -> useCase.execute(command));
+
+        // Assert
         assertEquals(Urgencia.ALTA, result.urgencia());
         assertNotNull(repository.feedbackSalvo);
         assertEquals(result.id(), repository.feedbackSalvo.id());
@@ -204,7 +237,9 @@ class CreateFeedbackUseCaseTest {
     }
 
     @Test
+    @DisplayName("Deve falhar quando o comando for nulo")
     void deveFalharQuandoCommandForNulo() {
+        // Arrange
         FakeFeedbackRepository repository = new FakeFeedbackRepository();
         FakeFeedbackNotificationLogRepository notificationLogRepository = new FakeFeedbackNotificationLogRepository();
         FeedbackUrgenciaClassifier classifier = (descricao, nota) -> Urgencia.BAIXA;
@@ -215,7 +250,11 @@ class CreateFeedbackUseCaseTest {
                 classifier,
                 List.of());
 
-        assertThrows(NullPointerException.class, () -> useCase.execute(null));
+        // Act
+        Executable action = () -> useCase.execute(null);
+
+        // Assert
+        assertThrows(NullPointerException.class, action);
     }
 
     private static class FakeFeedbackRepository implements FeedbackRepositoryPort {
@@ -252,5 +291,4 @@ class CreateFeedbackUseCaseTest {
                     .toList();
         }
     }
-
 }
