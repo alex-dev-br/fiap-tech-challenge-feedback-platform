@@ -125,7 +125,7 @@ flowchart LR
     Core -->|Feedback ALTA| Email[Azure Communication Email]
     Core -->|Registra tentativa| DB
 
-    Admin[Administrador] -->|GET /api/admin/feedbacks/{id}/notificacoes| Core
+    Admin[Administrador] -->|GET /api/admin/feedbacks/id/notificacoes| Core
 
     Report[az-func-feedback-report] -->|Consulta dados consolidados| DB
     Report -->|Gera relatório semanal| Blob[Azure Blob Storage]
