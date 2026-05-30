@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Java project to Azure Function App - func-feedback-core
+name: Build and deploy Java project to Azure Function App - func-feedback-platform-core
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_FUNCTIONAPP_NAME: func-feedback-core # set this to your function app name on Azure
+  AZURE_FUNCTIONAPP_NAME: func-feedback-platform-core # set this to your function app name on Azure
   PACKAGE_DIRECTORY: '.' # set this to the directory which contains pom.xml file
   JAVA_VERSION: '25' # set this to the java version to use
 
@@ -41,16 +41,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v3
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_2E925713EA27428EB209A9A03DA27F93 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3BA00EBC2B7B456C9E0DF4FEE7415CA3 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_26EE4A5B367C4377B8206C0CA64D156B }}
+          client-id: ${{ secrets.CORE_CLIENT_ID }}
+          tenant-id: ${{ secrets.TENANT_ID }}
+          subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
 
       - name: 'Run Azure Functions Action'
         uses: Azure/functions-action@v1
         id: fa
         with:
-          app-name: 'func-feedback-core'
+          app-name: 'func-feedback-platform-core'
           slot-name: 'Production'
-          package: '${{ env.PACKAGE_DIRECTORY }}'
-          respect-pom-xml: true
+          package: 'target/azure-functions/func-feedback-platform-core'
           

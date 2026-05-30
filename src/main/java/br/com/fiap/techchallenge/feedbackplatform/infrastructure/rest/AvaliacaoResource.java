@@ -43,8 +43,8 @@ public class AvaliacaoResource {
     @POST
     @RolesAllowed("ALUNO")
     @Transactional
-    @Counted(value = "criacoes.avaliacoes", description = "Contador de avaliações criadas")
-    @Timed(value = "criacao.avaliacao.time", description = "Tempo de execução da criação de avaliação")
+    @Counted(value = "feedback.create.attempted", description = "Contador de avaliações criadas")
+    @Timed(value = "feedback.create.duration", description = "Tempo de execução da criação de avaliação")
     public Response criar(@Valid CreateAvaliacaoRequest request, @Context UriInfo uriInfo) {
         LOG.info("Criando avaliacao: {}", request);
         CreateFeedbackCommand command = new CreateFeedbackCommand(request.descricao(), request.nota());

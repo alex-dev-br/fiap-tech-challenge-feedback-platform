@@ -16,7 +16,6 @@
         <quarkus.platform.version>3.34.6</quarkus.platform.version>
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.5.4</surefire-plugin.version>
-        <functionAppName>func-feedback-core</functionAppName>
     </properties>
 
     <dependencyManagement>
@@ -140,27 +139,6 @@
     </dependencies>
     <build>
         <plugins>
-            <plugin>
-                <groupId>com.microsoft.azure</groupId>
-                <artifactId>azure-functions-maven-plugin</artifactId>
-                <version>1.41.0</version>
-                <configuration>
-                    <appName>${functionAppName}</appName>
-                    <runtime>
-                        <os>linux</os>
-                        <javaVersion>25</javaVersion>
-                    </runtime>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>package-functions</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>package</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>${quarkus.platform.group-id}</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>

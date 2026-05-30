@@ -35,17 +35,6 @@ public record Feedback(
                 OffsetDateTime.now());
     }
 
-    public Feedback marcarAlertaEnviado(OffsetDateTime dataEnvioAlerta) {
-        Objects.requireNonNull(dataEnvioAlerta, "dataEnvioAlerta é obrigatória");
-
-        return new Feedback(
-                id,
-                descricao,
-                nota,
-                urgencia,
-                dataCriacao);
-    }
-
     private static void validarDescricao(String descricao) {
         if (descricao == null || descricao.isBlank()) {
             throw new IllegalArgumentException("Descrição é obrigatória.");
